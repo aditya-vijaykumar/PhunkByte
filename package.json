@@ -1,0 +1,10 @@
+{
+  "name": "phunkbyte",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "frontend": "pnpm --filter frontend dev",
+    "backend": "pnpm --filter backend dev",
+    "dev": "pnpm run -r dev"
+  }
+} 
