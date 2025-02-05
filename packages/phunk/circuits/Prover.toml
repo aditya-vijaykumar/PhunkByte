@@ -1,0 +1,4 @@
+expected_hash = "14453415293459273395"
+expected_nullifier = "105160359028057083"
+inputs = ["1", "2", "3", "4"]
+nonce = "5"
