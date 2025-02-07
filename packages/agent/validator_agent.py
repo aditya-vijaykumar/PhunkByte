@@ -197,3 +197,77 @@ class ValidatorAgent:
         except Exception as e:
             logger.error(f"Failed to save validation result: {str(e)}")
             raise
+
+    def validate_question(self, question_id: str) -> Optional[ValidationResult]:
+        """Main method to validate a question."""
+        try:
+            logger.info(f"Starting validation process for question {question_id}")
+            
+            # Get question data
+            question = self._get_question_with_distractors(question_id)
+            if not question:
+                logger.error(f"Could not retrieve question {question_id}")
+                return None
+                
+            # Get source material
+            source_material = self._get_source_material(question['source_material_id'])
+            if not source_material:
+                logger.warning(f"No source material found for question {question_id}")
+                
+            # Validate question
+            try:
+                logger.info("Performing validation")
+                result = self._validate_question(question, source_material)
+                
+                # Save validation result
+                logger.info("Saving validation results")
+                self._save_validation_result(question_id, result)
+                
+                # Log validation summary
+                logger.info(f"Validation completed for question {question_id}")
+                logger.info(f"Scores: {result.scores}")
+                if result.flags:
+                    logger.warning(f"Flags: {result.flags}")
+                
+                return result
+                
+            except Exception as e:
+                logger.error(f"Validation failed: {str(e)}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to validate question: {str(e)}")
+            return None
+
+    def validate_batch(self, question_ids: List[str]) -> Dict[str, ValidationResult]:
+        """Validate a batch of questions."""
+        results = {}
+        for question_id in question_ids:
+            result = self.validate_question(question_id)
+            if result:
+                results[question_id] = result
+        return results
+    
+    def _get_question_ids_for_source(self, source_id: str) -> List[str]:
+        """Get all question IDs for a given source ID."""
+        with psycopg2.connect(**self.db_config) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id FROM questions WHERE source_material_id = %s
+                """, (source_id,))
+                return [row[0] for row in cur.fetchall()]
+
+    def validate_batch_question_with_source(self, source_id: str) -> Optional[ValidationResult]:
+        """Validate a batch of questions with source material."""
+        question_ids = self._get_question_ids_for_source(source_id)
+        return self.validate_batch(question_ids)
+
+# Example usage
+if __name__ == "__main__":
+    validator = ValidatorAgent()
+    # Example question ID from your database
+    result = validator.validate_question("d1dc0276-7c27-433f-8e91-8bda4f1e9383")
+    if result:
+        print(f"Validation scores: {result.scores}")
+        if result.flags:
+            print(f"Issues found: {result.flags}") 
