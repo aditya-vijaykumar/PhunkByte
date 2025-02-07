@@ -210,7 +210,40 @@ class QuestionGeneratorAgent:
             logger.error(f"Failed to save question: {str(e)}")
             return None
 
-    
+    def process_material(self, source_id: str, difficulty_range: range = range(1, 11)) -> List[str]:
+        """Process study material and generate questions for each difficulty level."""
+        logger.info(f"Processing material from source {source_id}")
+        
+        # Get the source directory
+        source_dir = self.knowledge_dir / "structured_materials" / source_id / "processed"
+        if not source_dir.exists():
+            logger.error(f"Source directory not found: {source_dir}")
+            return []
+        
+        question_ids = []
+        
+        # Process each markdown file in the directory
+        for md_file in sorted(source_dir.glob("*.md")):
+            logger.info(f"Processing file: {md_file.name}")
+            
+            # Read content
+            with open(md_file, 'r') as f:
+                content = f.read()
+            
+            # Generate questions for each difficulty level
+            for difficulty in difficulty_range:
+                logger.info(f"Generating question with difficulty {difficulty}/10")
+                question = self._generate_question(content, difficulty)
+                
+                if question:
+                    question_id = self._save_question(question, source_id)
+                    if question_id:
+                        question_ids.append(question_id)
+                        logger.info(f"Saved question {question_id}")
+        
+        logger.info(f"Generated {len(question_ids)} questions")
+        return question_ids
+
 # Example usage
 if __name__ == "__main__":
     generator = QuestionGeneratorAgent()
